@@ -1,129 +1,172 @@
-# 💰 Cash Flow Simplification - 4 Algorithm Comparison
+# Cash Flow Simplification
 
-## 📋 Project Overview
+This project is a Data Structures and Algorithms web application that compares four different ways to solve the same problem: reducing a list of payments into the minimum or simplified set of final settlements.
 
-This is a **4-person team project** demonstrating how different data structures and algorithms can solve the same problem: **simplifying cash flows in a group of people**.
+For example, if several friends paid each other during a trip, the app calculates who finally owes whom after all transactions are balanced.
 
-Given a list of transactions between people, this web application shows how to minimize the number of settlements needed using 4 different algorithms:
+## What This Project Does
 
-1. **Algorithm 1: Greedy Two-Pointer** (Person A)
-2. **Algorithm 2: DFS Graph Traversal** (Person B)
-3. **Algorithm 3: Union-Find (Disjoint Sets)** (Person C)
-4. **Algorithm 4: Min-Heap Priority Queue** (Person D)
+The application lets a user:
 
-Each algorithm uses different data structures learned in a **Data Structures & Algorithms** course.
+- Add transactions between people.
+- Load sample transaction data.
+- View the original transaction graph.
+- Run four different algorithms on the same input.
+- Compare the number of settlements produced by each algorithm.
+- View simplified settlement results.
+- Read explanations and walkthroughs for each algorithm.
 
----
+The goal is not only to get the final answer, but also to show how different data structures can be used to approach the same problem.
 
-## 🎯 The Problem
+## Algorithms Implemented
 
-Imagine 5 friends go on a trip where everyone pays for different things. At the end, there are many mutual debts. Instead of asking everyone to pay everyone else, how can we **minimize the number of settlements**?
+| Algorithm | Main Idea | Data Structures Used | Time Complexity |
+| --- | --- | --- | --- |
+| Greedy Two-Pointer | Match debtors and creditors after sorting balances | Map, Vector, Sorting | O(n log n) |
+| DFS Graph Traversal | Treat transactions as a graph and use DFS-style traversal | Graph, Adjacency List, Map | O(V + E) |
+| Union-Find | Group connected people and solve each component | Disjoint Set Union, Map | O(n alpha(n)) |
+| Min-Heap Priority Queue | Use heaps to repeatedly match debtors and creditors | Priority Queue, Map | O(n log n) |
 
-### Example:
-```
-Original Transactions:
-Alice → Bob: $50
-Bob → Charlie: $30
-Charlie → Alice: $20
+## Project Flow
 
-Simplified Settlements:
-Alice → Bob: $20
-Bob → Charlie: $30
-Total: 2 settlements (instead of 3)
-```
+1. The user enters transactions in the browser.
+2. The frontend sends the transaction list to the Express backend using JSON.
+3. The backend converts the JSON data into the input format expected by the C++ programs.
+4. The backend runs the compiled C++ algorithm executables.
+5. Each C++ program calculates settlements and prints results.
+6. The backend parses that output and sends JSON back to the frontend.
+7. The frontend displays settlements, statistics, comparisons, and graph visualizations.
 
----
+## Project Structure
 
-## 🏗️ Architecture
-
-```
-Frontend (HTML/CSS/JS) 
-    ↓ HTTP/JSON
-Node.js/Express Backend
-    ↓ child_process
-C++ Algorithm Programs (4 executables)
-```
-
----
-
-## 📁 Project Structure
-
-```
-ds-cp/
-├── cpp/                        # C++ Algorithm Implementations
-│   ├── algorithm1-greedy.cpp   # (Person A)
-│   ├── algorithm2-dfs.cpp      # (Person B)
-│   ├── algorithm3-unionfind.cpp # (Person C)
-│   ├── algorithm4-heap.cpp     # (Person D)
+```text
+ds-cp-main/
+├── cpp/
+│   ├── algorithm1-greedy.cpp
+│   ├── algorithm2-dfs.cpp
+│   ├── algorithm3-unionfind.cpp
+│   ├── algorithm4-heap.cpp
 │   ├── Makefile
-│   └── bin/                    # Compiled executables
-│
-├── public/                     # Frontend Files
+│   └── bin/
+├── public/
 │   ├── index.html
 │   ├── styles.css
+│   ├── assets/
+│   │   └── test-cases.json
 │   └── js/
 │       ├── main.js
 │       └── visualization.js
-│
-├── server.js                   # Express backend
+├── scripts/
+│   └── build.js
+├── server.js
 ├── package.json
 └── README.md
 ```
 
----
+## Main Files Explained
 
-## 🚀 Quick Start
+`server.js`
 
-1. **Compile C++ programs:**
-   ```bash
-   cd cpp && make all && cd ..
-   ```
+Runs the Express server, serves the frontend, accepts API requests, executes the C++ algorithms, and returns parsed JSON results.
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+`scripts/build.js`
 
-3. **Start server:**
-   ```bash
-   npm start
-   ```
+Compiles all four C++ algorithm files into executable files inside `cpp/bin`. This script works better on Windows than relying only on `make`.
 
-4. **Open in browser:**
-   ```
-   http://localhost:3000
-   ```
+`public/index.html`
 
----
+Contains the main page structure: input form, graph section, algorithm cards, comparison table, explanations, and walkthrough modal.
 
-## 🧮 The 4 Algorithms
+`public/js/main.js`
 
-| Algorithm | Person | DS Used | Complexity | Best For |
-|-----------|--------|---------|-----------|----------|
-| Greedy Two-Pointer | A | Vector, Map, Sort | O(n log n) | Quick solutions |
-| DFS Graph Traversal | B | Graph, Map, Stack | O(V+E) | Understanding paths |
-| Union-Find | C | Union-Find, Map | O(n α(n)) | Connected components |
-| Min-Heap Priority Queue | D | Heap, Map | O(n log n) | Streaming data |
+Handles user interactions such as adding transactions, clearing data, running algorithms, displaying results, showing toasts, and updating the comparison table.
 
----
+`public/js/visualization.js`
 
-## 📚 Learning Outcomes
+Builds the original and simplified transaction graphs using Vis.js.
 
-- Hash Maps & Hashing
-- Vectors & Arrays
-- Graphs & DFS
-- Union-Find Data Structure
-- Heaps & Priority Queues
-- Algorithm Complexity Analysis
-- Backend-Frontend Integration
+`public/styles.css`
 
----
+Contains the full UI styling, including the dark theme, responsive layout, cards, buttons, transaction rows, toast messages, modals, and graph containers.
 
-## 👥 Team Members
+`cpp/*.cpp`
 
-- **Person A:** Greedy Two-Pointer Algorithm
-- **Person B:** DFS Graph Traversal Algorithm
-- **Person C:** Union-Find Algorithm
-- **Person D:** Min-Heap Priority Queue Algorithm
+Each file contains one algorithm implementation written in C++.
 
-**Course:** Data Structures & Algorithms
+## API Endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/test` | Check whether the server is running |
+| POST | `/api/algorithm/1` | Run Greedy Two-Pointer algorithm |
+| POST | `/api/algorithm/2` | Run DFS Graph Traversal algorithm |
+| POST | `/api/algorithm/3` | Run Union-Find algorithm |
+| POST | `/api/algorithm/4` | Run Min-Heap Priority Queue algorithm |
+| POST | `/api/algorithms/all` | Run all four algorithms together |
+
+## How To Run
+
+Install dependencies:
+
+```powershell
+npm install
+```
+
+Compile the C++ algorithms:
+
+```powershell
+npm run build
+```
+
+Start the project normally:
+
+```powershell
+npm start
+```
+
+For development with auto-restart:
+
+```powershell
+npm run dev
+```
+
+Open the app:
+
+```text
+http://localhost:3000/
+```
+
+## What Was Improved
+
+The project was updated to make it easier to run and better to use:
+
+- Replaced the old build command with a Node-based build script.
+- Fixed Algorithm 4 so it compiles correctly with the installed MinGW compiler.
+- Updated the backend to run C++ executables in a Windows-friendly way.
+- Added cleaner transaction rows in the UI.
+- Replaced browser alerts with styled toast messages.
+- Added a styled confirmation modal for clearing transactions.
+- Added a loading spinner when algorithms are running.
+- Added active navigation highlighting.
+- Added best-result highlighting in the comparison table.
+- Reduced some visual glow intensity for a cleaner presentation.
+
+## Learning Outcomes
+
+This project demonstrates:
+
+- Hash maps for balance calculation.
+- Sorting and two-pointer matching.
+- Graph representation and traversal.
+- Union-Find for connected components.
+- Priority queues and heap-based matching.
+- Time and space complexity comparison.
+- Connecting a JavaScript frontend, Node.js backend, and C++ programs.
+
+## Requirements
+
+- Node.js
+- npm
+- g++ compiler
+
+On Windows, MinGW g++ can be used.
