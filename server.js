@@ -1,9 +1,9 @@
 const express = require('express');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
@@ -54,6 +54,49 @@ function parseCppOutput(output) {
     return { settlements, metadata };
 }
 
+function getAlgorithmPath(algorithmNumber) {
+    const extension = process.platform === 'win32' ? '.exe' : '';
+    return path.join(__dirname, 'cpp', 'bin', `algo${algorithmNumber}${extension}`);
+}
+
+function runAlgorithm(algorithmNumber, input, callback) {
+    const child = spawn(getAlgorithmPath(algorithmNumber), [], {
+        windowsHide: true
+    });
+    let stdout = '';
+    let stderr = '';
+    let completed = false;
+
+    function finish(error, result) {
+        if (completed) return;
+        completed = true;
+        callback(error, result);
+    }
+
+    child.stdout.on('data', data => {
+        stdout += data.toString();
+    });
+
+    child.stderr.on('data', data => {
+        stderr += data.toString();
+    });
+
+    child.on('error', error => {
+        finish(error);
+    });
+
+    child.on('close', code => {
+        if (code !== 0) {
+            finish(new Error(stderr || `Algorithm ${algorithmNumber} exited with code ${code}`));
+            return;
+        }
+
+        finish(null, parseCppOutput(stdout));
+    });
+
+    child.stdin.end(input);
+}
+
 // API Endpoint: Run Algorithm 1 (Greedy)
 app.post('/api/algorithm/1', (req, res) => {
     const { transactions } = req.body;
@@ -63,12 +106,11 @@ app.post('/api/algorithm/1', (req, res) => {
 
     const input = generateCppInput(transactions);
 
-    exec(`echo "${input}" | ./cpp/bin/algo1`, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runAlgorithm(1, input, (error, result) => {
         if (error) {
             console.error('Algorithm 1 error:', error);
             return res.status(500).json({ error: error.message });
         }
-        const result = parseCppOutput(stdout);
         res.json({ algorithmNumber: 1, ...result });
     });
 });
@@ -82,12 +124,11 @@ app.post('/api/algorithm/2', (req, res) => {
 
     const input = generateCppInput(transactions);
 
-    exec(`echo "${input}" | ./cpp/bin/algo2`, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runAlgorithm(2, input, (error, result) => {
         if (error) {
             console.error('Algorithm 2 error:', error);
             return res.status(500).json({ error: error.message });
         }
-        const result = parseCppOutput(stdout);
         res.json({ algorithmNumber: 2, ...result });
     });
 });
@@ -101,12 +142,11 @@ app.post('/api/algorithm/3', (req, res) => {
 
     const input = generateCppInput(transactions);
 
-    exec(`echo "${input}" | ./cpp/bin/algo3`, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runAlgorithm(3, input, (error, result) => {
         if (error) {
             console.error('Algorithm 3 error:', error);
             return res.status(500).json({ error: error.message });
         }
-        const result = parseCppOutput(stdout);
         res.json({ algorithmNumber: 3, ...result });
     });
 });
@@ -120,12 +160,11 @@ app.post('/api/algorithm/4', (req, res) => {
 
     const input = generateCppInput(transactions);
 
-    exec(`echo "${input}" | ./cpp/bin/algo4`, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runAlgorithm(4, input, (error, result) => {
         if (error) {
             console.error('Algorithm 4 error:', error);
             return res.status(500).json({ error: error.message });
         }
-        const result = parseCppOutput(stdout);
         res.json({ algorithmNumber: 4, ...result });
     });
 });
@@ -143,11 +182,11 @@ app.post('/api/algorithms/all', (req, res) => {
 
     // Run all 4 algorithms in parallel
     for (let i = 1; i <= 4; i++) {
-        exec(`echo "${input}" | ./cpp/bin/algo${i}`, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+        runAlgorithm(i, input, (error, result) => {
             if (error) {
                 results[i] = { error: error.message };
             } else {
-                results[i] = parseCppOutput(stdout);
+                results[i] = result;
             }
 
             completed++;

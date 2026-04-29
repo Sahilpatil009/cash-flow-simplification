@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "cd cpp && make all && cd .."
+    "build": "node scripts/build.js"
   },
   "keywords": [
     "algorithms",

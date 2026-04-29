@@ -45,10 +45,14 @@ int main(){
 
     // Match debtors with creditors using heaps
     while (!min_heap.empty() && !max_heap.empty()) {
-        auto [debit, debit_person] = min_heap.top();
+        pair<int, string> debtor = min_heap.top();
+        int debit = debtor.first;
+        string debit_person = debtor.second;
         min_heap.pop();
 
-        auto [credit, credit_person] = max_heap.top();
+        pair<int, string> creditor = max_heap.top();
+        int credit = creditor.first;
+        string credit_person = creditor.second;
         max_heap.pop();
 
         int settlement_amount = min(-debit, credit);
@@ -61,10 +65,10 @@ int main(){
 
         // Re-insert if not fully settled
         if (debit < 0) {
-            min_heap.push({debit, debit_person});
+            min_heap.push(make_pair(debit, debit_person));
         }
         if (credit > 0) {
-            max_heap.push({credit, credit_person});
+            max_heap.push(make_pair(credit, credit_person));
         }
 
         settlement_count++;

@@ -2,18 +2,95 @@ let transactions = [];
 let allResults = {};
 let netBalances = {};
 
+function escapeHTML(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function refreshIcons() {
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+}
+
+function showToast(message, type = "info") {
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.setAttribute("role", "status");
+  toast.textContent = message;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("show"));
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    toast.addEventListener("transitionend", () => toast.remove(), {
+      once: true,
+    });
+  }, 3200);
+}
+
+function showConfirm(message, onConfirm) {
+  let modal = document.getElementById("confirm-modal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "confirm-modal";
+    modal.className = "confirm-modal";
+    modal.innerHTML = `
+      <div class="confirm-dialog">
+        <h3>Confirm Action</h3>
+        <p id="confirm-message"></p>
+        <div class="confirm-actions">
+          <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-ok">Clear</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  modal.querySelector("#confirm-message").textContent = message;
+  modal.classList.add("show");
+
+  const close = () => modal.classList.remove("show");
+  const confirm = () => {
+    close();
+    onConfirm();
+  };
+
+  const cancelButton = modal.querySelector("#confirm-cancel");
+  const okButton = modal.querySelector("#confirm-ok");
+
+  cancelButton.onclick = close;
+  okButton.onclick = confirm;
+  modal.onclick = (event) => {
+    if (event.target === modal) close();
+  };
+}
+
 function addTransaction() {
   const from = document.getElementById("fromInput").value.trim();
   const to = document.getElementById("toInput").value.trim();
   const amount = parseInt(document.getElementById("amountInput").value);
 
   if (!from || !to || !amount || amount <= 0) {
-    alert("Please fill all fields with valid values");
+    showToast("Please fill all fields with a valid amount.", "error");
     return;
   }
 
   if (from === to) {
-    alert("Cannot transfer to yourself");
+    showToast("From and To names must be different.", "error");
     return;
   }
 
@@ -25,6 +102,7 @@ function addTransaction() {
   document.getElementById("amountInput").value = "";
 
   updateUI();
+  showToast("Transaction added.", "success");
 }
 
 function removeTransaction(index) {
@@ -33,10 +111,16 @@ function removeTransaction(index) {
 }
 
 function clearAll() {
-  if (confirm("Are you sure you want to clear all transactions?")) {
+  if (transactions.length === 0) {
+    showToast("There are no transactions to clear.", "info");
+    return;
+  }
+
+  showConfirm("Clear all transactions and current results?", () => {
     transactions = [];
     updateUI();
-  }
+    showToast("All transactions cleared.", "success");
+  });
 }
 
 function loadSampleData() {
@@ -68,42 +152,53 @@ function displayTransactions() {
             <h3>Current Transactions (0)</h3>
             <p class="empty-message">No transactions added yet</p>
         `;
+    refreshIcons();
     return;
   }
 
   let html = `<h3>Current Transactions (${transactions.length})</h3>`;
+  html += '<div class="transaction-items">';
 
   transactions.forEach((t, i) => {
     html += `
-            <p>
-                <strong>${i + 1}.</strong> <span style="color: var(--algo1);">${
-      t.from
-    }</span> 
-                → <span style="color: var(--algo2);">${t.to}</span>: 
-                <span style="font-weight: 600; color: var(--dark);">$${
-                  t.amount
-                }</span>
-                <button onclick="removeTransaction(${i})" class="btn btn-small" 
-                    style="padding: 4px 8px; width: auto; display: inline;">✕ Remove</button>
-            </p>
+            <div class="transaction-row">
+                <div class="transaction-index">${i + 1}</div>
+                <div class="transaction-person">
+                    <span class="transaction-label">From</span>
+                    <strong>${escapeHTML(t.from)}</strong>
+                </div>
+                <div class="transaction-arrow" aria-hidden="true">&rarr;</div>
+                <div class="transaction-person">
+                    <span class="transaction-label">To</span>
+                    <strong>${escapeHTML(t.to)}</strong>
+                </div>
+                <div class="transaction-amount">$${escapeHTML(t.amount)}</div>
+                <button onclick="removeTransaction(${i})" class="btn btn-icon danger-soft" title="Remove transaction">
+                    <i data-lucide="x" class="icon-xs"></i>
+                    <span class="sr-only">Remove transaction</span>
+                </button>
+            </div>
         `;
   });
 
+  html += "</div>";
   list.innerHTML = html;
+  refreshIcons();
 }
 
 async function runAllAlgorithms(button) {
   if (transactions.length === 0) {
-    alert("Please add at least one transaction");
+    showToast("Please add at least one transaction first.", "error");
     return;
   }
 
   // Show loading state on the passed button element
   if (button && typeof button === "object") {
     button.disabled = true;
-    // keep icon and text readable
-    button.dataset.originalText = button.textContent;
-    button.textContent = "Running algorithms...";
+    button.dataset.originalHtml = button.innerHTML;
+    button.classList.add("is-loading");
+    button.innerHTML =
+      '<span class="spinner" aria-hidden="true"></span> Running algorithms...';
   }
 
   try {
@@ -132,15 +227,18 @@ async function runAllAlgorithms(button) {
     displayResults();
     displayComparison();
     drawGraphs();
+    showToast("Algorithms completed successfully.", "success");
   } catch (error) {
-    alert("Error running algorithms: " + error.message);
+    showToast("Error running algorithms: " + error.message, "error");
   } finally {
     if (button && typeof button === "object") {
       button.disabled = false;
-      // restore original text if saved
-      button.textContent =
-        button.dataset.originalText || "▶️ Run All Algorithms";
-      delete button.dataset.originalText;
+      button.classList.remove("is-loading");
+      button.innerHTML =
+        button.dataset.originalHtml ||
+        '<i data-lucide="play" class="icon-btn"></i> Run All Algorithms';
+      delete button.dataset.originalHtml;
+      refreshIcons();
     }
   }
 }
@@ -152,7 +250,9 @@ function displayResults() {
     const statsDiv = document.getElementById(`algo${i}-stats`);
 
     if (result.error) {
-      resultsDiv.innerHTML = `<p style="color: var(--danger);">Error: ${result.error}</p>`;
+      resultsDiv.innerHTML = `<p class="result-error">Error: ${escapeHTML(
+        result.error
+      )}</p>`;
       statsDiv.innerHTML = "";
       continue;
     }
@@ -160,7 +260,12 @@ function displayResults() {
     // Display settlements
     if (result.settlements && result.settlements.length > 0) {
       resultsDiv.innerHTML = result.settlements
-        .map((s) => `<p>💳 ${s}</p>`)
+        .map(
+          (s) =>
+            `<p class="settlement-row"><i data-lucide="credit-card" class="icon-xs"></i>${escapeHTML(
+              s
+            )}</p>`
+        )
         .join("");
     } else {
       resultsDiv.innerHTML =
@@ -189,11 +294,19 @@ function displayResults() {
     statsHtml += "</div>";
     statsDiv.innerHTML = statsHtml;
   }
+
+  refreshIcons();
 }
 
 function displayComparison() {
   const tbody = document.getElementById("comparison-body");
-  let rows = "";
+  const comparisonRows = [];
+  const algorithmNames = [
+    "Greedy Two-Pointer",
+    "DFS Graph Traversal",
+    "Union-Find",
+    "Min-Heap Priority Queue",
+  ];
 
   for (let i = 1; i <= 4; i++) {
     const result = allResults.algorithms[i];
@@ -207,24 +320,38 @@ function displayComparison() {
         ? (((original - settlements) / original) * 100).toFixed(1)
         : 0;
 
-    const algorithmNames = [
-      "Greedy Two-Pointer",
-      "DFS Graph Traversal",
-      "Union-Find",
-      "Min-Heap Priority Queue",
-    ];
+    comparisonRows.push({
+      name: algorithmNames[i - 1],
+      settlements,
+      original,
+      reduction,
+      timeComplexity: metadata.timeComplexity || "N/A",
+      spaceComplexity: metadata.spaceComplexity || "N/A",
+    });
+  }
 
-    rows += `
-            <tr>
-                <td><strong>${algorithmNames[i - 1]}</strong></td>
-                <td>${settlements}</td>
-                <td>${original}</td>
-                <td>${reduction}% reduction</td>
-                <td>${metadata.timeComplexity || "N/A"}</td>
-                <td>${metadata.spaceComplexity || "N/A"}</td>
+  const bestSettlements =
+    comparisonRows.length > 0
+      ? Math.min(...comparisonRows.map((row) => row.settlements))
+      : null;
+
+  const rows = comparisonRows
+    .map((row) => {
+      const isBest = row.settlements === bestSettlements;
+      return `
+            <tr class="${isBest ? "best-row" : ""}">
+                <td><strong>${row.name}</strong>${
+        isBest ? '<span class="best-badge">Best</span>' : ""
+      }</td>
+                <td>${row.settlements}</td>
+                <td>${row.original}</td>
+                <td>${row.reduction}% reduction</td>
+                <td>${row.timeComplexity}</td>
+                <td>${row.spaceComplexity}</td>
             </tr>
         `;
-  }
+    })
+    .join("");
 
   tbody.innerHTML =
     rows || '<tr><td colspan="6">Run algorithms to see comparison</td></tr>';
@@ -243,6 +370,34 @@ function updateUI() {
   }
   document.getElementById("comparison-body").innerHTML =
     '<tr><td colspan="6">Run algorithms to see comparison</td></tr>';
+  refreshIcons();
+}
+
+function initActiveNavigation() {
+  const links = Array.from(document.querySelectorAll(".navbar a"));
+  const sections = links
+    .map((link) => document.querySelector(link.getAttribute("href")))
+    .filter(Boolean);
+
+  if (!sections.length) return;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+
+        links.forEach((link) => {
+          link.classList.toggle(
+            "active",
+            link.getAttribute("href") === `#${entry.target.id}`
+          );
+        });
+      });
+    },
+    { rootMargin: "-30% 0px -55% 0px", threshold: 0 }
+  );
+
+  sections.forEach((section) => observer.observe(section));
 }
 
 function showWalkthrough(algoNum) {
@@ -353,4 +508,5 @@ window.onclick = function (event) {
 // Initialize on load
 document.addEventListener("DOMContentLoaded", () => {
   updateUI();
+  initActiveNavigation();
 });
