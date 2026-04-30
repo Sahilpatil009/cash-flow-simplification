@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper: Generate C++ input format
 function generateCppInput(transactions) {
@@ -200,6 +200,14 @@ app.post('/api/algorithms/all', (req, res) => {
 // Test endpoint
 app.get('/api/test', (req, res) => {
     res.json({ message: 'Server is running!', timestamp: new Date() });
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 if (require.main === module) {
