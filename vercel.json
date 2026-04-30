@@ -1,6 +1,11 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "functions": {
+    "server.js": {
+      "includeFiles": "cpp/bin/**"
+    }
+  },
   "builds": [
     {
       "src": "server.js",

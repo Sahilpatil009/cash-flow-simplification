@@ -4,6 +4,8 @@ This project is a Data Structures and Algorithms web application that compares f
 
 For example, if several friends paid each other during a trip, the app calculates who finally owes whom after all transactions are balanced.
 
+Live Demo: https://cash-flow-simplification.vercel.app/
+
 ## What This Project Does
 
 The application lets a user:
