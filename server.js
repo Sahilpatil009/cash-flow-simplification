@@ -202,11 +202,15 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'Server is running!', timestamp: new Date() });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📝 POST /api/algorithm/1 - Run Greedy Algorithm`);
-    console.log(`📝 POST /api/algorithm/2 - Run DFS Algorithm`);
-    console.log(`📝 POST /api/algorithm/3 - Run Union-Find Algorithm`);
-    console.log(`📝 POST /api/algorithm/4 - Run Heap Algorithm`);
-    console.log(`📝 POST /api/algorithms/all - Run all algorithms`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📝 POST /api/algorithm/1 - Run Greedy Algorithm`);
+        console.log(`📝 POST /api/algorithm/2 - Run DFS Algorithm`);
+        console.log(`📝 POST /api/algorithm/3 - Run Union-Find Algorithm`);
+        console.log(`📝 POST /api/algorithm/4 - Run Heap Algorithm`);
+        console.log(`📝 POST /api/algorithms/all - Run all algorithms`);
+    });
+}
+
+module.exports = app;
